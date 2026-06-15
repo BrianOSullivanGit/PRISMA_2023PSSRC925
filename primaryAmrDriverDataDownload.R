@@ -274,7 +274,7 @@ wwtpFacilities=st_read("DATA/wwtpFacilities.geojson")
 
 if (!file.exists("DATA/castleblayneyWwtp.geojson")) {
   # Then download it
-  q = add_osm_feature(opq=opq("Castleblayney, Ireland"), key = "name", value = "Castleblaney Wastewater Treatment Plant")
+  q = add_osm_feature(opq=opq("Castleblayney, Ireland"), key = "name", value = "Castleblayney Wastewater Treatment Plant")
   castleblayneyWwtpSf = osmdata_sf(q)$osm_polygons
   st_write(castleblayneyWwtpSf, dsn = "DATA/castleblayneyWwtp.geojson", layer = "castleblayneyWwtp.geojson")
 } else {
