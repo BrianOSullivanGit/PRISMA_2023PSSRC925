@@ -10,7 +10,7 @@ To begin, run the following R script:
 ```
 # Open and run in R studio or alternatively, from the command line with the directory downloaded from github
 
-Rscript ./primaryAmrDriverDataDownload.R
+Rscript ./loadDataExample.R
 ```
 
 Data is stored in the 'DATA' directory. See the script `primaryAmrDriverDataDownload.R` for more details.
