@@ -398,9 +398,6 @@ for (i in 1:length(lowQuality$Name)) {
   print(enterococciWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[i], note)
   )
 }
-ecoliWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[1], note)
-
-
 ```
 
 Now inland.
