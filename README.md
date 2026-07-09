@@ -1,16 +1,18 @@
 # PRISMA_2023PSSRC925
 
-## Data download and setup.
-This directory contains the scripts required to download and process the primary geospatial datasets used in the study of environmental antimicrobial resistance (AMR) in the Republic of Ireland. Data are sourced from government agencies including the EPA, DAFM (via the Marine Institute / Foras na Mara), and the CSO.
+## Reproducible Analysis Workflow
+The R Markdown (Rmd) source files and associated R script in this GitHub directory provide a reproducible workflow for the analyses presented in the publication "Integrating GIS and Machine Learning to Map Environmental Antimicrobial Resistance Risk and Exposure Pathways in Irish Waters".
 
-The scripts will also install and load the R packages required to access and process these datasets.
+The analysis is performed in two steps:
 
-To begin, run the following R script:
+**1)** Open `SomBathingWaterQualityAnalysis.Rmd` in RStudio and knit the document. This will execute `primaryAmrDriverDataDownload.R`, which loads the required R packages and geospatial datasets used in the study of environmental antimicrobial resistance (AMR) in the Republic of Ireland. The datasets are sourced from government agencies, including the EPA, DAFM (via the Marine Institute/Foras na Mara), and the CSO. Using these data, the R Markdown workflow generates SOM-derived pathogen level classifications from Irish bathing water quality data.
 
-```
-# Open and run in R studio or alternatively, from the command line with the directory downloaded from github
+**2)** Open `CoastalAndSelecedInlandWatersRiskMaps.Rmd` in RStudio and knit the document. This analysis uses the pathogen level classifications generated in Step 1 to perform an AMR risk assessment of inland and coastal waters using source attribution and source-specific AMR risk weighting of routine bathing water microbiological monitoring data.
 
+If you wish to download and stage the required datasets without running the full analysis, refer to the example script `loadDataExample.R`. The script downloads and stages the datasets required for the analysis for the date range 2020–2025 (the period examined in the publication), storing the output in the DATA directory. You may modify the date range specified in these files as required.
+
+Run the script from the command line using:
+
+```bash
 Rscript ./loadDataExample.R
 ```
-
-Data is stored in the 'DATA' directory. See the script `primaryAmrDriverDataDownload.R` for more details.
