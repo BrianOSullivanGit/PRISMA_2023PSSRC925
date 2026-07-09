@@ -795,7 +795,7 @@ repIrl = st_read("DATA/Coast___OSi_National_250k_Map_Of_Ireland.geojson")
 # Base map of Northern Ireland polygon
 if (!file.exists("DATA/OSNI_Open_Data_-_Largescale_Boundaries_-_NI_Outline.geojson")) {
   # Then download it
-  system("wget 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -O DATA/OSNI_Open_Data_-_Largescale_Boundaries_-_NI_Outline.geojson 'https://admin.opendatani.gov.uk/dataset/1f472693-2c20-483c-b367-b42382b83886/resource/ec752797-02df-43eb-bdeb-f74838771df3/download/osni_open_data_largescale_boundaries_ni_outline.geojson'")
+  system("wget -U 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -O DATA/OSNI_Open_Data_-_Largescale_Boundaries_-_NI_Outline.geojson 'https://admin.opendatani.gov.uk/dataset/1f472693-2c20-483c-b367-b42382b83886/resource/ec752797-02df-43eb-bdeb-f74838771df3/download/osni_open_data_largescale_boundaries_ni_outline.geojson'")
 }
 NorthernIrl = st_read("DATA/OSNI_Open_Data_-_Largescale_Boundaries_-_NI_Outline.geojson")
 
