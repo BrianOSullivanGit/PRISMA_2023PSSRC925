@@ -655,20 +655,9 @@ enterococciWqTwsmOverview <- function(locationList, bData, location, note = "") 
 }
 
 # Estimate driver densities within a given impact zone around a waterbody.
-driverDensitiesAroundLake <- function(loughPolySf, buffSizeMtrs, totalUnitsName, dataset)
+driverDensitiesAroundWaterbody <- function(loughPolySf, buffSizeMtrs, totalUnitsName, dataset)
 {
-  ###
-  #loughPolySf=loughMuckno
-  #totalUnits="totalCattle"
-  #buffSizeMtrs=800000
-  #dataset=edSfAVA42
-  ###
-  ###
-  #  loughPolySf=loughMuckno
-  #  totalUnits="individualSepticTank"
-  #  buffSizeMtrs=40000
-  #  dataset=edSfSAP2022T6T7ED_2022
-  ###
+
   totalUnitsPerSqKm = paste0(totalUnitsName,"PerKm")
   
   tmpDrDs = dataset
@@ -899,7 +888,6 @@ if (!file.exists("DATA/buncranaBoundary.geojson")) {
 } else {
   buncranaBoundary = st_read("DATA/buncranaBoundary.geojson")
 }  
-
 
 
 
