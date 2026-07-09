@@ -1,0 +1,472 @@
+---
+title: "SOM-Derived Pathogen Level Classifications from Irish Bathing Water Quality Data"
+author: "Brian O'Sullivan"
+date: "June, 2026"
+output:
+  html_document:
+    toc: true
+---
+# Classification of bathing water quality from national monitoring data
+
+## Download the necessary datasets.
+The script primaryAmrDriverDataDownload.R loads the data objects listed below. Required source files are downloaded automatically if they are not already available in the DATA directory. An overview of the datasets is shown in the table below.
+
+
+| R Object Name | Dataset Description | Provider | Data Update Frequency | Analysis Period | Licence |
+|:------------------------|:----------|:----------|:----------------------|:--------------------------|:----------|
+| edSfAVA42 | Livestock | CSO | 1 in 10 years |2020 |  CC BY 4.0^a^ |
+| edSfSAP2022T6T7ED_2022 | Domestic wastewater | CSO | 1 in 5 years | 2022 | CC BY 4.0^a^ |
+| wwEp | Urban wastewater plants | EPA | Single snapshot^b^ | 2025 | CC BY 4.0^a^ |
+| wwtpFacilities | Urban wastewater emissions | EPA | Single snapshot^b^ | 2025 | CC BY 4.0^a^ |
+| ielFacilities | Industrial emissions licences | EPA | Single snapshot^b^ | 2025 | CC BY 4.0^a^ |
+| ielAquaculture | Aquaculture | DAFM | Single snapshot^b^ | 2025 | Open data |
+| hiqaNursingHomes & hospitalsSf | Healthcare | HIQA & OSM | Single snapshot^b^ | 2024 (HIQA) and 2025 (OSM) | Open data |
+| bqDataComplete | Bathing water quality | EPA | 13 times per month (in season^c^) | 2020 to 2025 | CC BY 4.0^a^ |
+
+^a^ CC BY 4.0 indicates data released under the Creative Commons Attribution 4.0 International licence.
+^b^ Single snapshot indicates that only current data were available and no historical time series existed.
+^c^ Bathing season defined as 1 June-15 September.
+
+
+We begin by loading some commonly used R libraries and datasets required for our analysis. SOM-derived classifications are based on median \textit{Escherichia coli} and intestinal enterococci concentrations from routine bathing water monitoring conducted by local authorities. The dataset spans multiple years, with approximately 60\% of sites containing 14 or more years of records and over 90\% containing at least five years. In this analysis, we limit our scope to data within the 6 year period 2020--2025; however, you can adjust the time range below to explore other periods if desired.
+
+```{r}
+# Specify the time frame for bathing water quality assessment.
+# The period includes data from the start year up to and including the end year.
+# Modify this range and re-run the analysis as required.
+yearStart=2020
+yearEnd=2025
+
+source("primaryAmrDriverDataDownload.R")
+```
+
+## Normalise EPA bathingwater quality data.
+```{r fig1, fig.align = "center"}
+
+# Normalise
+normalisedDf=epaBqXyrsMedians
+normalisedDf$EcoliResult=scale(normalisedDf$EcoliResult)
+normalisedDf$EnterococciResult=scale(normalisedDf$EnterococciResult)
+
+```
+
+## Define a grid for the SOM (self-organising maps)
+A SOM grid size of 5 was selected. This gives us about 9 or 10 obsercvations (ie., monitoring sites) per node.
+By trial and error it was also show that a grid size of 5 is the largest value that ends up with no empty nodes.
+
+```{r fig2, fig.align = "center"}
+# Set seed.
+set.seed(1);
+
+
+tmpDf = data.frame(EcoliResult=normalisedDf$EcoliResult,
+                   EnterococciResult = normalisedDf$EnterococciResult);
+
+# Trial and error shows that  a grid size of 5 is the largest value that ends up with no empty nodes.
+grid.size <- 5
+
+som.grid <- somgrid(xdim = grid.size, ydim = grid.size, topo = 'hexagonal')
+som.model <- som(data.matrix(tmpDf), grid = som.grid)
+
+epaBqXyrsMedians$class = factor(som.model$unit.classif, levels=unique(som.model$unit.classif), labels=1:length(unique(som.model$unit.classif)))
+epaBqXyrsMedians$class = som.model$unit.classif
+
+############################### SOM plots ##############################################
+
+# Check the raw counts.
+plot(som.model, type = "counts", main = "Counts SOM")
+
+# Now Visualize the heat maps
+coolBlueHotRed <- function(n, alpha = 1){
+  rainbow(n, end=4/6, alpha=alpha)[n:1]
+}
+
+for(i in colnames(getCodes(som.model)))
+{
+  plot(som.model,
+       type = "property",
+       property = getCodes(som.model)[,i],
+       main=paste0("\n\n\n",i),
+       palette.name=coolBlueHotRed)
+}
+
+```
+
+The next stage of the analysis involves hierarchical clustering of the SOM codebook vectors using the base R stats::cutree function. Prior to clustering, the optimal number of clusters (k) must be determined. This was achieved using the Elbow Method based on the Within-Cluster Sum of Squares (WCSS).
+
+WCSS quantifies the total squared distance between observations and the centroid of their assigned cluster. Lower WCSS values indicate more compact clusters, whereas higher values indicate greater within-cluster dispersion. As the number of clusters increases, WCSS decreases monotonically because observations are partitioned into progressively smaller groups. In the limiting case where each observation forms its own cluster, WCSS approaches zero, resulting in overfitting.
+
+The objective is therefore to identify the smallest number of clusters that adequately captures the structure of the data while avoiding unnecessary model complexity. To achieve this, WCSS was calculated across a range of cluster numbers and plotted against k. The optimal number of clusters was selected as the "elbow" point, where further increases in k resulted in only marginal reductions in WCSS.
+
+After k is chosen, hierarchical clustering of the SOM codebook vectors is performed using the base R stats::cutree function.
+
+```{r, fig.align = "center"}
+
+
+# Secondary clustering to reduce number of clusters to a more useful number
+# Look at WCSS to pick optimal number of clusters ("elbow-point")
+
+# Cluster SOM node centres for a range of k.
+
+# Setup distance matrix and hierarchical clustering
+d <- dist(som.model$codes[[1]], method = "euclidean")
+hc <- hclust(d)
+
+# Function to calculate WCSS for a given number of clusters
+getWcss <- function(k) {
+  clusters <- cutree(hc, k = k)
+  centers <- aggregate(som.model$codes[[1]], by = list(clusters), FUN = mean)[, -1]
+  
+  # Calculate squared distances
+  distances <- sapply(1:nrow(som.model$codes[[1]]), function(i) {
+    sum((som.model$codes[[1]][i, ] - centers[clusters[i], ])^2)
+  })
+  sum(distances)
+}
+
+# Apply the function over a range of clusters (e.g., 1 to 10)
+k_values <- 1:10
+wcssValues <- sapply(k_values, getWcss)
+
+# Plot Elbow curve
+plot(k_values, wcssValues, type = "b", pch = 20, 
+     xlab = "Number of clusters", ylab = "WCSS", 
+     main = "Elbow method for selection of k, hierarchical clustering")
+
+# There is nothing useful to be gained from k>5 so lets go with 5
+numHclusters = 5
+
+# Cluster the node centers to your required number of clusters.
+# The codebook vector som.model$codes[[1]] gives you the centre of each node
+# in n dimensional space (in this case n=2, for Ecoli and Enterococci).
+# We get a distance matrix for this vector and then cluster the nodes
+# into the number of clusters we have chosen previously.
+Hclusters <- cutree(hclust(dist(som.model$codes[[1]])), numHclusters)
+
+# Get refs here for clustering of the SOM codebook itself (with hClust etc..)
+# ie., etc. https://www.ifs.tuwien.ac.at/~andi/publications/pdf/poe_ijcnn05.pdf
+# Final clusters looks like a reasonable summary of SOM heatmap.
+plot(som.model, type = "codes", bgcol = c("purple", "lightgreen","lightblue",  "red","orange")[Hclusters], main = "Final clusters from SOM & hClust")
+add.cluster.boundaries(som.model, Hclusters)
+
+```
+
+## Now look at it on the geospatial map.
+The legend beside the map shows average Ecoli levels and Enterococci levels for each cluster.
+It is interesting to note that bathing locations that cluster together biologically, also cluster close to each other geospatially.
+
+```{r, fig.height = 8, fig.width = 7.5, fig.align = "left"}
+
+# Cluster the node centers to your required number of clusters.
+# (each node on the SOM grid is associated with a codebook vector (som.model$codes[[1]]), like a node centre)
+
+# som_clusters maps nodes to cluster, and som_model$unit.classif maps test stations (ie., their 6 year medians) to nodes.
+
+epaBqXyrsMedians$class = Hclusters[som.model$unit.classif]
+
+
+ecoliEnterococciClusters = c();
+epaBqXyrsMedians$ecoliEnterococciCluster="NA";
+epaBqXyrsMedians$pathogenSeverityLevel="NA";
+
+
+# Re-order the cluster numbers according to how we want them displayed.
+# We estimate cluster severity according to increasing median E.coli levels at the cluster center.
+
+severityLevels = data.frame(
+  clusterNum = c(),
+  ecoliMean   = c(),
+  enterococciMean   = c()
+)
+
+for(i in 1:numHclusters){
+  tmp=cbind(clusterNum=i,ecoliMean=mean(epaBqXyrsMedians[epaBqXyrsMedians$class==i,]$EcoliResult), enterococciMean=mean(epaBqXyrsMedians[epaBqXyrsMedians$class==i,]$EnterococciResult))
+  severityLevels = rbind(severityLevels, tmp);
+}
+
+# Sort according to cluster mean ecoli levels and add a severity level
+severityLevels=severityLevels[order(severityLevels$ecoliMean),]
+severityLevels=cbind(severityLevels,severity=1:numHclusters)
+
+# Create the labels for the legend first.
+for(i in 1:numHclusters){
+  ecoliEnterococciClusters = c(ecoliEnterococciClusters,paste(severityLevels[severityLevels$clusterNum==i,"severity"],": ", round(mean(epaBqXyrsMedians[epaBqXyrsMedians$class==i,]$EcoliResult), digits=2),", ",round(mean(epaBqXyrsMedians[epaBqXyrsMedians$class==i,]$EnterococciResult), digits=2)));
+}
+
+# Now add the correct label to each class.
+for(i in 1:numHclusters){
+  epaBqXyrsMedians[epaBqXyrsMedians$class==i,]$ecoliEnterococciCluster = ecoliEnterococciClusters[i];
+  epaBqXyrsMedians[epaBqXyrsMedians$class==i,]$pathogenSeverityLevel =  severityLevels[severityLevels$clusterNum == i,"severity"];
+}
+epaBqXyrsMedians$pathogenSeverityLevel = as.numeric(epaBqXyrsMedians$pathogenSeverityLevel)
+
+# Get levels in correct order.
+#levelsOrder = order(unique(epaBqXyrsMedians$ecoliEnterococciCluster))
+levelsOrder = order(unique(epaBqXyrsMedians$pathogenSeverityLevel))
+epaBqXyrsMedians$ecoliEnterococciCluster <- factor(epaBqXyrsMedians$ecoliEnterococciCluster, levels=unique(epaBqXyrsMedians$ecoliEnterococciCluster)[levelsOrder])
+
+# Write epaBqXyrsMedians out to a tsv file so we can process it from other scripts without having to re-run everything we've done upto this point here.
+write.table(epaBqXyrsMedians, file='DATA/epaBqXyrsMedians.tsv', sep='\t', row.names = FALSE)
+
+# Make sure to use the EPSG:29903 (TM75/Irish Grid) coordinates from this dataset.
+# The long. lat. values (EPSG:4326) supplied with this dataset contain some missing / incorrect values.
+tStations = st_as_sf(epaBqXyrsMedians,
+                     coords = c("Easting", "Northing"),
+                     crs = 29903)
+
+bathingLevelsIcons = tmap_icons(c(
+  "ICONS/blueBpin.png",
+  "ICONS/greenBpin.png",
+  "ICONS/orangeBpin.png",
+  "ICONS/redBpin.png",
+  "ICONS/purpleBpin.png"))
+
+
+# Order bathing points so that ones with highest ecoli/Enterococci levels are overlayed on others.
+tStations=tStations[order(tStations$EcoliResult),]
+
+sfWfdLakeWaterBodies = st_as_sf(wfdLakeWaterBodies,
+                                crs = 4326)
+sfWfdLakeWaterBodies = st_transform(sfWfdLakeWaterBodies, crs=29903)
+
+sfWfdRiverWaterBodies = st_as_sf(wfdRiverWaterBodies,
+                                 crs = 4326)
+sfWfdRiverWaterBodies = st_transform(sfWfdRiverWaterBodies, crs=29903)
+
+# For context, include all the Barrow, Nore and Suir before they join plus transitional waters.. (IE_SE_100_0200 etc...)
+# Also Shannon.. Barrow and Shannon Lower will be included anyways due to monitoring sites but this ensures all sections are included.
+riverSubset=grepl("IE_SE_100_0", sfWfdRiverWaterBodies$Transitional_Waterbody_Code,ignore.case = T)
+
+riverSubset=riverSubset | grepl("Barrow|Nore|Suir|Shannon", sfWfdRiverWaterBodies$EPA_Name,ignore.case = T)
+
+# Find which rivers intersect monitoring sites (put in a 50 meter buffer).
+tmpLst=st_intersects(st_buffer(tStations,50),sfWfdRiverWaterBodies)
+tmp=unlist(tmpLst)
+
+# Add these to the list to be rendered on the map
+tmpEpaRiverNames = unique(sfWfdRiverWaterBodies[tmp,]$EPA_Name[!is.na(sfWfdRiverWaterBodies[tmp,]$EPA_Name)])
+riverSubset=riverSubset | !is.na(match(sfWfdRiverWaterBodies$EPA_Name,tmpEpaRiverNames))
+
+
+# Find which lakes intersect monitoring sites.
+tmpLst=st_intersects(st_buffer(tStations,50),sfWfdLakeWaterBodies)
+lakeSubset_A=unlist(tmpLst)
+
+
+# Display lakes within a 30 km radius of monitoring sites at reduced opacity to add geographic context on surrounding water bodies.
+tmpLst=st_intersects(st_buffer(tStations,30000),sfWfdLakeWaterBodies)
+lakeSubset_B=unlist(tmpLst)
+
+# Define a bounding box for the area of interest.
+
+bbox_new <- st_bbox(repIrl)
+
+xrange <- bbox_new$xmax - bbox_new$xmin # range of x values
+yrange <- bbox_new$ymax - bbox_new$ymin # range of y values
+
+bbox_new[1] <- bbox_new[1] - (.1 * xrange) # xmin - left
+bbox_new[3] <- bbox_new[3] + (.13 * xrange) # xmax - right
+bbox_new[2] <- bbox_new[2] - (.1 * yrange) # ymin - bottom
+bbox_new[4] <- bbox_new[4] + (.1 * yrange) # ymax - top
+
+
+# Coastal and national boundaries.
+tm_shape(repIrl, bbox = bbox_new) + tm_lines(col = "black") +
+  #  tm_shape(NorthernIrl) + tm_borders(col="blue") +
+  tm_shape(NorthernIrl) + 
+  tm_lines(col = "lightblue", alpha = 0.9, lty = "dashed") +
+  
+  # River and lake waterbodies
+  tm_shape(sfWfdLakeWaterBodies[lakeSubset_A,]) + tm_fill(col = "#0000FF55", fill="#0000FF70") +
+  tm_shape(sfWfdLakeWaterBodies[lakeSubset_B,]) + tm_fill(col = "#0000FF25", fill="#0000FF35") +
+  tm_shape(sfWfdRiverWaterBodies[riverSubset,]) + tm_lines(col = "#0000FF70", fill="#0000FF70",lwd=2) +
+  
+  # Selection of towns and roads
+  tm_shape(routeCollection) + tm_lines(col = "black", alpha = 0.2, lty = "dashed") +
+  tm_shape(irlTowns) +
+  tm_dots(size = .2, fill = "#89512980") + tm_text("city", xmod = 0, ymod = 0.2, size=.5, alpha = 0.3, col = "#89512990") +
+
+  # Bathingwater monitoring sites
+  tm_shape(tStations) +
+  
+  tm_symbols(shape = "ecoliEnterococciCluster",
+             title.shape = "Bathing water quality level:\nE.coli, Enterococci cluster centres",
+             shapes = bathingLevelsIcons,
+             size = 0.8) +
+  
+  # Only display the names of sites with the highest pathogen levels to avoid clutter
+  tm_shape(tStations[!grepl("^[12] : ", tStations$ecoliEnterococciCluster),]) +
+  tm_text("Name", size = 0.6, xmod = 0, ymod = 0, bgcol = "white") +
+  tm_symbols(shape = "ecoliEnterococciCluster",
+             title.shape = "Bathing water quality level:\nE.coli, Enterococci cluster centres",
+             shapes = bathingLevelsIcons,
+             size = 0.8) +
+
+  
+
+#  tm_layout(paste0("Bathing water quality assessment,\n",yearStart," to ",yearEnd," inclusive"))
+	tm_layout(legend.position = c("right", "top"), inner.margins = c(0.05, 0, 0.05, 0.7))
+
+
+```
+
+
+
+
+## Initial analysis of low water quality bathing sites
+
+### Where has the lowest median bathingwater quality been over this 6 year period?
+EcoliResult and EnterococciResult fields show 6 year median values.
+```{r}
+epaBqXyrsMedians[grepl("^5 : ", epaBqXyrsMedians$ecoliEnterococciCluster),]
+```
+
+### Where has the second lowest median bathingwater quality been over the last 6 years?
+EcoliResult and EnterococciResult fields show 6 year median values.
+Over half of the lowest bathing water quality sites are inland water bodies (4 of 7).
+```{r}
+epaBqXyrsMedians[grepl("^4 : ", epaBqXyrsMedians$ecoliEnterococciCluster),]
+```
+
+### Where has the third lowest median bathingwater quality been over the last 6 years?
+```{r}
+epaBqXyrsMedians[grepl("^3 : ", epaBqXyrsMedians$ecoliEnterococciCluster),]
+```
+
+### Bathing water quality: Inland vrs Coastal
+Freshwater bathing water quality seems to be much lower than seawater quality. Perform fishers test and get p-value etc.
+
+```{r}
+# Quick fishers test to see if the number of lower quality inland bathing waters is significant
+
+# List of inland bathing waters (rivers, lakes etc.)
+# It would have been nice if they used a consistent naming convention for the Eden code to distinguish them here,
+# but they did not, so here's the list...
+inlandBathingWaters = c("IEWEBWL29_194_0100","IEEABWL07_274_0100","IESHBWL27_72_0100","IESHBWL26_624_0100","IESHBWL25_188_0100","IESHBWL25_191a_0200","IESHBWL26_703_0100","BPNBF010000010001","BPNBF010000020001","BPNBF240000030001","BPNBF240000100001","BPNBF240000020001","BPNBF240000040001","BPNBF240000050001","BPNBF240000060001","BPNBF240000070001","BPNBF240000080001","BPNBF240000090001","BPNBF240000110001","IESHBWL25_191a_0300","IESHBWL25_191a_0100","BPNBF120000200001","IESHBWL25_191a_0190")
+
+# First just show inland bathing waters for comparison.
+tInlandStations = st_as_sf(epaBqXyrsMedians[match(inlandBathingWaters, epaBqXyrsMedians$Code, nomatch=0),],
+                           coords = c("Easting", "Northing"),
+                           crs = 29903)
+
+tCoastalStations = st_as_sf(epaBqXyrsMedians[-match(inlandBathingWaters, epaBqXyrsMedians$Code, nomatch=0),],
+                            coords = c("Easting", "Northing"),
+                            crs = 29903)
+
+
+dat <- data.frame(
+  "Freshwater" = c(sum(tInlandStations$class>2), sum(tInlandStations$class<=2)),
+  "Seawater" = c(sum(tCoastalStations$class>2), sum(tCoastalStations$class<=2)),
+  row.names = c("HighPathogenLevel", "LowPathogenLevel"),
+  stringsAsFactors = FALSE
+)
+colnames(dat) <- c("Freshwater", "Seawater")
+
+dat
+
+# Fishers test
+test <- fisher.test(dat)
+test
+
+test$p.value
+
+
+
+```
+
+
+
+## Low water quality sites analysis
+
+Plot seasonal median \textit{Escherichia coli} and intestinal enterococci concentrations for sites exhibiting the highest levels of faecal contamination (North Bull Wall (Dublin), Lady's Bay (Buncrana), Lough Muckno (Monaghan), and River Barrow (Bagenalstown, Carlow)) using all available years of monitoring data.
+
+Coastal sites first.
+```{r}
+# Get lowest quality inland category
+
+lowC = substr(as.character(tCoastalStations$ecoliEnterococciCluster[rev(order(tCoastalStations$ecoliEnterococciCluster))[1]]),1,4)
+
+note = substr(lowC,1,1)
+note = paste0(", pathogen level ",note)
+
+lowC = paste0("^",lowC)
+
+lowQuality = tCoastalStations[grepl(lowC, tCoastalStations$ecoliEnterococciCluster),]
+
+for (i in 1:length(lowQuality$Name)) { 
+  print(ecoliWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[i], note))
+  print(enterococciWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[i], note)
+  )
+}
+ecoliWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[1], note)
+
+
+```
+
+Now inland.
+```{r}
+# Get lowest quality inland category
+
+lowC = substr(as.character(tInlandStations$ecoliEnterococciCluster[rev(order(tInlandStations$ecoliEnterococciCluster))[1]]),1,4)
+
+note = substr(lowC,1,1)
+note = paste0(", pathogen level ",note)
+
+lowC = paste0("^",lowC)
+
+lowQuality = tInlandStations[grepl(lowC, tInlandStations$ecoliEnterococciCluster),]
+
+for (i in 1:length(lowQuality$Name)) { 
+  print(ecoliWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[i], note))
+  print(enterococciWQoverview(epaBathingLocations, bqDataComplete, lowQuality$Name[i], note)
+  )
+}
+
+```
+
+## Grazing livestock overlay.
+Redraw the map but this time overlay with extensive, grazing livestock (total cattle) as an example.
+Repeat for other overlays as required.
+
+```{r, fig.height = 8, fig.width = 7.5, fig.align = "left"}
+
+# Check out the max value for cattle density overlay
+maxCattleD = max(edSfAVA42$totalCattlePerKm[!is.na(edSfAVA42$totalCattlePerKm)])
+
+# Pick 5 even breaks
+cattleBreaks=round(maxCattleD/6)
+cattleBreaks = c(0, cattleBreaks, 2*cattleBreaks, 3*cattleBreaks, 4*cattleBreaks, round(maxCattleD))
+
+
+tm_shape(repIrl) + tm_lines(col = "black") +
+  tm_shape(edSfAVA42) +
+  tm_fill("totalCattlePerKm", 
+          title = "Total cattle numbers per km²",
+          breaks = cattleBreaks,
+          style = "fixed",
+          textNA = "No data",
+          colorNA = "grey", 
+          palette = "Reds")+
+  tm_borders(col_alpha = 0.2) +
+  tm_shape(tStations[!grepl("^[12] : ", tStations$ecoliEnterococciCluster),]) +
+  tm_text("Name", size = 0.6, xmod = 0, ymod = 0, bgcol = "white") +
+  tm_shape(tStations) +
+  tm_symbols(shape = "ecoliEnterococciCluster",
+             title.shape = "Bathing water quality level:\nE.coli, Enterococci cluster centres",
+             shapes = bathingLevelsIcons,
+             size = 0.8,
+             border.col = NULL) +
+	tm_layout(legend.position = c("right", "top"), inner.margins = c(0.05, 0, 0.05, 0.7))
+
+#	tm_layout(legend.outside = TRUE, legend.position = c("right", "top"), inner.margins = c(0.05, 0, 0.05, 0.7))
+
+#  	tm_layout(legend.outside = FALSE, panel.show = FALSE, inner.margins = c(0, 0, 0.01, 0.2))
+
+
+#  tm_layout(panel.show = FALSE) + 
+#	tm_facets_vstack()
+
+#  tm_layout(legend.outside = TRUE, legend.position = c("right", "top"))
+
+```
+
