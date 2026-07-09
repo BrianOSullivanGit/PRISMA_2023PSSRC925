@@ -1088,9 +1088,9 @@ monSites=tStations[match(monSites,tStations$LocationId),]
 # Get a list of high risk WWTP emission points
 wwEpPrimaryBathingLoc=wwEpBathingLoc[!(wwEpBathingLoc$EmissionType!="Primary" & wwEpBathingLoc$wwtpAmrImpactLevel != "Oversubscribed"),]
 wwepsLevelsIcons = tmap_icons(c(
-  "/home/sully/BIOINFORMATICS/AMR/BATHING_WATERS/ICONS/redAlertIcon.png",
-  "/home/sully/BIOINFORMATICS/AMR/BATHING_WATERS/ICONS/yellowAlertIcon.png",
-  "/home/sully/BIOINFORMATICS/AMR/BATHING_WATERS/ICONS/purpleAlertIcon.png"
+  "ICONS/redAlertIcon.png",
+  "ICONS/yellowAlertIcon.png",
+  "ICONS/purpleAlertIcon.png"
 ))
 
 # Get a list of high risk WWTP emission points within the impact zone of this coastal segment.
@@ -1164,7 +1164,7 @@ tm_shape(repIrl, bbox = bbox_new) + tm_lines(lwd = 0.1) + tm_shape(tmpSf[grep("L
   
   # Add EP numbers from substandard WWTPs (no or primary treatment only) in the area
   tm_shape(wwEpPrimaryBathingLoc[grepl("^[01] ", wwEpPrimaryBathingLoc$TreatmentType),])+ 
-  tm_text("RegNo", xmod = -2, ymod = -0.5, bgcol = "yellow", size=0.2) +
+  tm_text("RegNo", xmod = -2, ymod = -0.5, bgcol = "yellow", size=0.3) +
   
   # Finally add the problem WWTP discharge points
   tm_shape(wwEpPrimaryBathingLoc) +
@@ -1185,8 +1185,8 @@ tm_shape(repIrl, bbox = bbox_new) + tm_lines(lwd = 0.1) + tm_shape(tmpSf[grep("L
   tm_shape(st_buffer(cSegment,impactZoneBufferMetres)) +
   tm_borders(fill="#00000000", col="#00FFAA", lwd = 0.7, lty = "dashed") +
   # Health care facilities within sub-standard UWWTP agglomerations
-  tm_shape(cHomesSubset) +tm_symbols(shape=tmap_icons("DATA/careHomeIcon.png"), size=0.13) + tm_text("Label", xmod = 0, ymod = 0.22, size=.64, alpha = 0.4, col = "#89512990") +
-  tm_scale_bar(
+  tm_shape(cHomesSubset) +tm_symbols(shape=tmap_icons("ICONS/careHomeIcon.png"), size=0.13) + tm_text("Label", xmod = 0, ymod = 0.22, size=.64, alpha = 0.4, col = "#89512990") +
+  tm_scalebar(
     breaks = c(0, 2, 4, 6, 8),
     text.size = 0.4
   )
@@ -1196,11 +1196,6 @@ tm_shape(repIrl, bbox = bbox_new) + tm_lines(lwd = 0.1) + tm_shape(tmpSf[grep("L
 # Display the AMR driver densities within the impact zone of the lough.
 driverDensitiesAroundWaterbody(st_zm(cSegment), impactZoneBufferMetres, "totalCattle", edSfAVA42)
 driverDensitiesAroundWaterbody(st_zm(cSegment), impactZoneBufferMetres, "individualSepticTank", edSfSAP2022T6T7ED_2022)
-
-```
-Plot all available e.coli monitoring data for lowest water quality bathing locations in Lough Swilly.
-```{r, fig.height = 8, fig.width = 7.5, fig.align = "left"}
-ecoliWQoverview(epaBathingLocations, bqDataComplete, "Lady's Bay, Buncrana")
 
 ```
 
@@ -1336,7 +1331,7 @@ tm_layout(legend.outside = TRUE,legend.position = c("right", "top"),
   
   # Add EP numbers from substandard WWTPs (no or primary treatment only) in the area
   tm_shape(wwEpPrimaryBathingLoc[grepl("^[01] ", wwEpPrimaryBathingLoc$TreatmentType),])+ 
-  #    tm_text("RegNo", xmod = -2, ymod = -0.5, bgcol = "yellow", size=0.2) +
+  #    tm_text("RegNo", xmod = -2, ymod = -0.5, bgcol = "yellow", size=0.3) +
   
   # Finally add the problem WWTP discharge points
   tm_shape(wwEpPrimaryBathingLoc) +
@@ -1354,12 +1349,12 @@ tm_layout(legend.outside = TRUE,legend.position = c("right", "top"),
   # Care homes.. there are a large number of these so only display
   # the top 5 in terms of bed capacity
   tm_shape(cHomesSubset[rev(order(cHomesSubset$Capacity))[1:5],]) + 
-  tm_symbols(shape=tmap_icons("DATA/careHomeIcon.png"), size=0.18) +
+  tm_symbols(shape=tmap_icons("ICONS/careHomeIcon.png"), size=0.18) +
   tm_text("Label", xmod = 0, ymod = 0.22, size=.45, alpha = 0.4, col = "#FF002990") +
   
   # Hospitals, again just add the top 5 in terms of bed capacity
   tm_shape(hospitalSubset[rev(order(hospitalSubset$hospitalBedCapacity))[1:5],]) + 
-  tm_symbols(shape=tmap_icons("DATA/hospitalIcon.png"), size=0.22) +
+  tm_symbols(shape=tmap_icons("ICONS/hospitalIcon.png"), size=0.22) +
   tm_text("Label", xmod = 0, ymod = 0.22, size=.45, alpha = 0.4, col = "#89512990") +
   
   # Bathingwater monitoring sites
@@ -1378,18 +1373,11 @@ tm_layout(legend.outside = TRUE,legend.position = c("right", "top"),
   tm_shape(wwEp[grepl("Ringsend", wwEp$Name) & wwEp$EmissionType=="Primary",]) + tm_dots(col="red", shape=4, lwd = 2,  size = 0.35) +
   
   # Scale bar
-  tm_scale_bar(
+  tm_scalebar(
     breaks = c(0, 2, 4, 6, 8, 10, 12),
     text.size = 0.4
   )  
 ```
-
-Plot all available e.coli monitoring data for lowest water quality bathing locations in Dublin Bay.
-```{r, fig.height = 8, fig.width = 7.5, fig.align = "left"}
-ecoliWQoverview(epaBathingLocations, bqDataComplete, "North Bull Wall")
-
-```
-
 
 ## Inland risk assessment
 
@@ -1491,9 +1479,9 @@ tm_layout(legend.outside = TRUE,legend.position = c("right", "top"),
   
   # Care homes (there are no major hospitals within agglomeration)
   #tm_shape(hospitalsSf) + 
-  #tm_symbols(shape=tmap_icons("DATA/hospitalIcon.png"), size=0.22) +
+  #tm_symbols(shape=tmap_icons("ICONS/hospitalIcon.png"), size=0.22) +
   tm_shape(hiqaNursingHomes) + 
-  tm_symbols(shape=tmap_icons("DATA/careHomeIcon.png"), size=0.3) + 
+  tm_symbols(shape=tmap_icons("ICONS/careHomeIcon.png"), size=0.3) + 
   tm_text("Label", xmod = 0, ymod = 0.22, size=.3, alpha = 0.2, col = "#FF002990") +
   
   # Add the WWTP outline
@@ -1517,8 +1505,6 @@ tm_layout(legend.outside = TRUE,legend.position = c("right", "top"),
   
   tm_scalebar() 
 
-
-ecoliWQoverview(epaBathingLocations, bqDataComplete, "Lough Muckno Bathing Area")
 
 # Driver densities around lake
 driverDensitiesAroundWaterbody(st_centroid(st_union(lkMno)), 5000, "individualSepticTank", edSfSAP2022T6T7ED_2022)
@@ -1716,7 +1702,4 @@ driverDensitiesAroundWaterbody(barrowSites[2,], (1.2*st_distance(barrowSites[1,]
 # Densities inside impact zone as a percentage of the national average
 driverDensitiesAroundWaterbody(barrowSites[2,], (1.2*st_distance(barrowSites[1,], barrowSites[2])[2]), "individualSepticTank", edSfSAP2022T6T7ED_2022)/driverDensitiesAroundWaterbody(barrowSites[2,], 500000, "individualSepticTank", edSfSAP2022T6T7ED_2022)
 
-# Plots
-# ecoliWQoverview(epaBathingLocations, bqDataComplete, "River Barrow Bagenalstown")
 ```
-
