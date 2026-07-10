@@ -17,7 +17,7 @@ sudo apt install ./rstudio-2026.06.0-242-amd64.deb
 
 ### Install system dependencies
 
-The analysis requires several development tools and system libraries to build and run the R packages used by the R Markdown workflows. On Ubuntu 24.04, install them with:
+The analysis requires several development tools and system libraries to build and run the R packages used by the R Markdown workflows for processing geospatial data. On Ubuntu 24.04, install them with:
 
 ```bash
 sudo apt install -y build-essential cmake libgdal-dev libudunits2-dev
