@@ -1,5 +1,39 @@
 # PRISMA_2023PSSRC925
 
+## Installation
+
+This analysis pipeline has been validated on **Ubuntu 24.04** using **R** and **RStudio 2026.06.0-242**. The installation steps may vary depending on your operating system, its version, and the versions of R and RStudio that you are using.
+
+### Install R and RStudio
+
+If you have not already installed R and RStudio, the following commands can be used on Ubuntu 24.04:
+
+```bash
+sudo apt update
+sudo apt install r-base
+wget https://download1.rstudio.org/electron/jammy/amd64/rstudio-2026.06.0-242-amd64.deb
+sudo apt install ./rstudio-2026.06.0-242-amd64.deb
+```
+
+### Install system dependencies
+
+The analysis requires several development tools and system libraries to build and run the R packages used by the R Markdown workflows. On Ubuntu 24.04, install them with:
+
+```bash
+sudo apt install -y build-essential cmake libgdal-dev libudunits2-dev
+```
+
+### Download the repository
+
+Clone the repository (or download the latest release from GitHub):
+
+```bash
+git clone https://github.com/BrianOSullivanGit/PRISMA_2023PSSRC925.git
+```
+
+After cloning the repository, open the `PRISMA_2023PSSRC925` directory in RStudio and continue with the instructions in the next section to reproduce the analyses.
+
+
 ## Reproducible Analysis Workflow
 The R Markdown (Rmd) source files and associated R script in this GitHub directory provide a reproducible workflow for the analyses presented in the publication "Integrating GIS and Machine Learning to Map Environmental Antimicrobial Resistance Risk and Exposure Pathways in Irish Waters".
 
