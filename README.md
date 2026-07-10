@@ -45,7 +45,7 @@ The analysis is performed in two steps:
 
 If you wish to download and stage the required datasets without running the full analysis, refer to the example script `loadDataExample.R`. The script downloads and stages the datasets required for the analysis for the date range 2020–2025 (the period examined in the publication), storing the output in the DATA directory. You may modify the date range specified in these files as required.
 
-Run the script from the command line using:
+To download the datasets without running the full analysis, run the script from the command line using:
 
 ```bash
 Rscript ./loadDataExample.R
