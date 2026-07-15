@@ -2,7 +2,7 @@
 
 ## Installation
 
-This analysis pipeline has been validated on **Ubuntu 24.04** using **R** and **RStudio 2026.06.0-242**. The installation steps may vary depending on your operating system, its version, and the versions of R and RStudio that you are using.
+This analysis pipeline has been validated on **Ubuntu 24.04** using **R 4.6.1** and **RStudio 2026.06.0-242**. The installation steps may vary depending on your operating system, its version, and the versions of R and RStudio that you are using.
 
 ### Install R and RStudio
 
