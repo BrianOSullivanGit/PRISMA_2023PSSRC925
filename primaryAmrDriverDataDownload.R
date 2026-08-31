@@ -354,6 +354,14 @@ if (!file.exists("DATA/WFD_RiverWaterBodies.geojson")) {
 wfdRiverWaterBodies=st_read("DATA/WFD_RiverWaterBodies.geojson")
 
 ######
+# This layer (EPA:WATER_RIVNETROUTES) contains an integrated flow network that includes known flow connections through rivers, lakes and groundwater aquifers.
+# It is highly detailed, mapping every minor ditch, stream segment, and main channel flow.
+
+# Note: Waterbodies in this dataset retain their geographical name, as opposed to the regulatory management name associated with the waterbody,
+# as listed in EPA:WFD_RIVERWATERBODIES_CYCLE3. If required, both datasets may be joined using the River_Waterbody_Code as a key.
+
+# For more information see https://www.geohive.ie/maps/02b70756725f45cda84c1a17170309da/about
+
 # EPA:WATER_RIVNETROUTES
 if (!file.exists("DATA/WATER_RiverNetRoutes.geojson")) {
   # Then download it
