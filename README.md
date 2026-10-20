@@ -35,7 +35,8 @@ After cloning the repository, open the `PRISMA_2023PSSRC925` directory in RStudi
 
 
 ## Reproducible Analysis Workflow
-The R Markdown (Rmd) source files and associated R script in this GitHub directory provide a reproducible workflow for the analyses presented in the publication "Integrating GIS and Machine Learning to Map Environmental Antimicrobial Resistance Risk and Exposure Pathways in Irish Waters".
+The R Markdown (Rmd) source files and associated R script in this GitHub directory provide a reproducible workflow for the analyses presented in the publication "Integrating GIS and Machine Learning to Prioritise Environmental Monitoring of Water
+ Quality and Antimicrobial Resistance".
 
 The analysis is performed in two steps:
 
